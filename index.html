@@ -948,6 +948,16 @@
   .btn-quiet[aria-expanded="true"] { background: var(--accent-soft); color: var(--accent); }
   .session-card.idle .session-actions { justify-content: flex-start; }
   .top-main { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .hist-edit { display: flex; flex-direction: column; gap: 12px; }
+  .he-ex { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .he-ex.is-removed { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); }
+  .he-ex-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .he-ex-head .btn-link { flex: none; }
+  .he-set { display: grid; gap: 8px; align-items: center; }
+  .he-set-head { font-size: 0.75rem; font-weight: 600; color: var(--muted); text-align: center; }
+  .he-set .set-no { text-align: center; }
+  .he-set .icon-btn { width: 44px; background: transparent; color: var(--muted); }
+  .he-add { align-self: flex-start; min-height: 44px; }
   /* Zurück aus der Übung (wie eine Navigationsleiste) */
   .nav-back { font: inherit; display: inline-flex; align-items: center; gap: 2px; min-height: 44px; padding: 0 8px 0 0; margin: -6px 0 -4px; border: 0; background: transparent; color: var(--accent); font-size: 1.05rem; cursor: pointer; align-self: flex-start; }
   .nav-back svg { width: 22px; height: 22px; }
@@ -1385,7 +1395,17 @@
     ex("rudergeraet", "Rudergerät", "cardio", "c", "Cardiogerät"),
     ex("ergometer", "Fahrradergometer", "cardio", "c", "Cardiogerät"),
     ex("stepper", "Treppensteiger", "cardio", "c", "Cardiogerät"),
-    ex("seilspringen", "Seilspringen", "cardio", "c", "Körpergewicht")
+    ex("seilspringen", "Seilspringen", "cardio", "c", "Körpergewicht"),
+
+    // gym80-Geräte aus dem Katalog 2023
+    ex("brust-crossover-maschine", "Brust-Crossover-Maschine", "brust", "w", "Maschine"),
+    ex("kreuzheben-maschine", "Kreuzheben-Maschine", "ruecken", "w", "Plate-loaded"),
+    ex("rudern-pl", "Vorgebeugtes Rudern", "ruecken", "w", "Plate-loaded"),
+    ex("nackendruecken", "Nackendrücken", "schultern", "w", "Maschine"),
+    ex("viking-press", "Viking Press", "schultern", "w", "Plate-loaded"),
+    ex("bizeps-ueberkopf", "Bizepscurls über Kopf", "bizeps", "w", "Plate-loaded"),
+    ex("unterarm-maschine", "Unterarmmaschine", "unterarme", "w", "Maschine"),
+    ex("donkey-calf", "Donkey Wadenheben", "waden", "w", "Maschine")
   ];
 
   var EQ_ORDER = ["Maschine", "Plate-loaded", "Kabelzug", "Multipresse", "Langhantel", "Trap-Bar", "SZ-Stange", "Kurzhantel", "Kettlebell", "Körpergewicht", "Cardiogerät", "Eigene Übung"];
@@ -1587,7 +1607,15 @@
     "rudergeraet": ["Dauer und Strecke eintragen. Ein Zug beginnt mit den Beinen, dann folgt der Oberkörper, zuletzt ziehen die Arme den Griff zum Bauch.", "Die Beine liefern den Großteil der Kraft; nicht nur mit den Armen ziehen."],
     "ergometer": ["Dauer in Minuten und, falls angezeigt, die Strecke eintragen.", "Sattel so einstellen, dass das Knie unten fast gestreckt ist."],
     "stepper": ["Dauer in Minuten eintragen, die Strecke kannst du leer lassen.", "Nicht auf das Geländer stützen, sonst arbeiten die Beine weniger."],
-    "seilspringen": ["Dauer in Minuten eintragen, die Strecke leer lassen.", "Auf den Fußballen springen, die Drehung kommt aus den Handgelenken."]
+    "seilspringen": ["Dauer in Minuten eintragen, die Strecke leer lassen.", "Auf den Fußballen springen, die Drehung kommt aus den Handgelenken."],
+    "brust-crossover-maschine": ["Sitz- oder Standposition so einstellen, dass die Griffe auf Brusthöhe liegen. Griffe mit leicht gebeugten Armen vor dem Körper zusammenführen, kurz halten und langsam öffnen.", "Schultern unten und hinten lassen; die Bewegung kommt aus der Brust, die Arme drücken nicht."],
+    "kreuzheben-maschine": ["Mittig auf die Plattform stellen und die Griffe neben den Beinen fassen. Mit geradem Rücken aus Hüfte und Beinen aufrichten, oben die Hüfte strecken und kontrolliert absenken.", "Rücken neutral halten, oben nicht ins Hohlkreuz lehnen."],
+    "rudern-pl": ["Auf die Plattform stellen, den Oberkörper mit geradem Rücken nach vorn neigen und die Griffe fassen. Ellbogen nach hinten oben ziehen, Schulterblätter zusammenführen und langsam ablassen.", "Den Rückenwinkel während des Satzes nicht verändern."],
+    "nackendruecken": ["Sitz so einstellen, dass die Griffe etwa auf Ohrhöhe beginnen. Griffe gerade nach oben drücken, ohne die Ellbogen ganz durchzustrecken, und langsam zurückführen.", "Nur so tief gehen, wie die Schulter schmerzfrei mitmacht; Kopf neutral halten."],
+    "viking-press": ["Unter die Griffe stellen und sie auf Schulterhöhe fassen. Nach oben drücken, bis die Arme fast gestreckt sind, und kontrolliert senken.", "Bauch fest, nicht ins Hohlkreuz drücken; die Beine schieben nicht mit."],
+    "bizeps-ueberkopf": ["Sitz so einstellen, dass die Oberarme etwa auf Schulterhöhe auf dem Polster liegen. Griffe Richtung Kopf beugen, kurz halten und langsam strecken.", "Die Oberarme bleiben liegen, nur die Ellbogen bewegen sich."],
+    "unterarm-maschine": ["Unterarme auf das Polster legen, die Handgelenke über der Kante. Den Griff mit den Handgelenken nach oben beugen und langsam absenken.", "Nur die Handgelenke bewegen, die Unterarme bleiben liegen."],
+    "donkey-calf": ["Mit den Fußballen auf die Kante stellen, den Oberkörper nach vorn auf das Polster beugen. Fersen tief senken, dann so hoch wie möglich auf die Zehen drücken.", "Unten kurz in der Dehnung halten, die Knie bleiben fast gestreckt."]
   };
 
   // ---------- Muskelkarte ----------
@@ -2207,7 +2235,7 @@
   mm("schraegbank-lh schraegbank-smith schraegbank-kh schraeg-brustpresse schraeg-brustpresse-pl", "pec_clav delt_ant",
     "pec_stern triceps_lat triceps_med", N.incl);
   mm("negativbank-lh negativ-brustpresse-pl", "pec_stern", "triceps_long triceps_lat triceps_med delt_ant", N.decl);
-  mm("butterfly cable-cross", "pec_stern", "pec_clav delt_ant", N.fly);
+  mm("butterfly cable-cross brust-crossover-maschine", "pec_stern", "pec_clav delt_ant", N.fly);
   mm("fliegende-kh kabel-fliegende-bank", "pec_stern", "pec_clav delt_ant", N.dbfly);
   mm("schraeg-fliegende-kh", "pec_clav", "pec_stern delt_ant", N.inclfly);
   mm("cable-cross-low", "pec_clav", "pec_stern delt_ant", N.lowcable);
@@ -2225,7 +2253,7 @@
   mm("kabelrudern rudermaschine low-row-pl", "lats trap_mid",
     "teres_major trap_low delt_post biceps_long biceps_short brachialis", N.row);
   mm("high-row-pl", "trap_mid lats", "delt_post teres_major trap_low infraspinatus brachialis", N.highrow);
-  mm("rudern-lh t-bar", "trap_mid lats", "delt_post teres_major trap_low erector biceps_long brachialis", N.bentrow);
+  mm("rudern-lh t-bar rudern-pl", "trap_mid lats", "delt_post teres_major trap_low erector biceps_long brachialis", N.bentrow);
   mm("rudern-kh brust-rudern-kh", "lats trap_mid", "teres_major delt_post biceps_long brachialis", N.rowrel);
   mm("inverted-row", "lats trap_mid", "delt_post teres_major biceps_long brachialis glute_max", N.inverted);
   mm("kabelrudern-einarmig", "lats trap_mid", "teres_major delt_post biceps_long brachialis oblique", N.onearm);
@@ -2306,7 +2334,7 @@
   mm("reverse-hyper", "glute_max", "semi biceps_fem erector", N.revhyper);
 
   // Waden
-  mm("waden-stehend waden-presse waden-pl waden-smith waden-kh", "gastro_med gastro_lat", "soleus", N.standcalf);
+  mm("waden-stehend waden-presse waden-pl waden-smith waden-kh donkey-calf", "gastro_med gastro_lat", "soleus", N.standcalf);
   mm("waden-sitzend", "soleus", "gastro_med gastro_lat", N.seatcalf);
   mm("tibialis-raise", "tibialis", "");
 
@@ -2338,6 +2366,10 @@
   mm("rudergeraet", "vastus_lat vastus_med glute_max lats", "semi biceps_fem erector trap_mid delt_post biceps_long", N.rowerg);
   mm("ergometer", "vastus_lat vastus_med rectus_fem glute_max", "semi biceps_fem gastro_med gastro_lat", N.cardio);
   mm("stepper", "glute_max vastus_lat vastus_med", "semi biceps_fem gastro_med gastro_lat", N.cardio);
+  mm("kreuzheben-maschine", "glute_max erector semi biceps_fem", "vastus_lat vastus_med adductors trap_upper forearm_flex");
+  mm("nackendruecken viking-press", "delt_ant delt_lat", "triceps_lat triceps_long triceps_med trap_upper serratus");
+  mm("bizeps-ueberkopf", "biceps_long biceps_short", "brachialis brachioradialis");
+  mm("unterarm-maschine", "forearm_flex", "");
   mm("seilspringen", "gastro_med gastro_lat soleus", "vastus_lat vastus_med delt_ant forearm_flex", N.cardio);
 
   // Lehrbuchkapitel je Muskel für Zuordnungen nach funktioneller Anatomie
@@ -2601,20 +2633,28 @@
   function allExercises() { return LIBRARY.concat(data.custom); }
   // gym80-Modellnummern laut gym80-Katalog 2023 (S = Sygnum Steckgewicht, P = Pure Kraft Scheibengewicht, K = Kabelstation)
   var GYM80 = {
-    "beinstrecker": "3001S 4336P", "beinbeuger-liegend": "3002S", "beinbeuger": "3003S 4337P", "beinbeuger-stehend": "3013S",
-    "glute-maschine": "3004S 3005S 5002S 4321P", "rueckenstrecker": "3007S 3038S", "bizeps-maschine": "3010S", "bizeps-pl": "4338P 4355P",
-    "trizeps-maschine": "3011S 3095S 4339P", "pullover": "3012S 4350P", "butterfly": "3022S 3021S 4341P", "brustpresse": "3016S 3041S",
-    "brustpresse-pl": "4328P 4331P 4364P", "schraeg-brustpresse": "3023S 3042S", "schraeg-brustpresse-pl": "4329P 4365P",
-    "negativ-brustpresse-pl": "4346P 4362P", "klimmzug-assist": "3017S", "dips-assist": "3017S", "waden-stehend": "3018S",
-    "waden-sitzend": "3027S", "waden-pl": "4026P 4345P", "latzug-maschine": "3020S 3044S 3047S", "latzug-pl": "4311P",
-    "reverse-fly": "3025S 4344P", "abduktoren": "3028S 3069S", "adduktoren": "3029S", "rotation": "3225S 4342P",
-    "beinpresse": "3030S 3031S 3046S 5001S 4314P 4354P", "beinpresse-45": "4023P 4324P 4361P", "schulterpresse": "3032S 3043S",
-    "schulterpresse-pl": "4320P 4363P", "dip-maschine": "3036S 4335P", "bauchmaschine": "3037S 4343P 4317P",
-    "rudermaschine": "3039S 3040S 3045S 5003S 4322P 4327P", "high-row-pl": "4340P", "low-row-pl": "4319P", "t-bar": "4018P",
-    "seitheben-maschine": "3050S 4325P", "hackenschmidt": "4159P", "pendulum": "4353P", "belt-squat": "4360P",
-    "kniebeuge-maschine": "4038P", "sissy-squat": "4347", "tibialis-raise": "4348P", "cable-cross": "4004K 4012K", "cable-cross-low": "4004K 4012K"
+    "beinstrecker": "3001S 4336P 5013S", "beinbeuger-liegend": "3002S 4337P", "beinbeuger": "3003S 5013S", "beinbeuger-stehend": "3013S",
+    "glute-maschine": "3004S 3005S 3006S 5002S 4321P", "rueckenstrecker": "3007S 3038S 5012S", "bizeps-maschine": "3010S 5004S",
+    "bizeps-pl": "4338P 4355P", "bizeps-ueberkopf": "4366P", "trizeps-maschine": "3011S 3095S 4339P", "pullover": "3012S 4350P",
+    "brust-crossover-maschine": "3014S 4326P", "brustpresse": "3016S 3041S", "brustpresse-pl": "4328P 4331P 4364P",
+    "butterfly": "3021S 3022S 4341P 5014S", "schraeg-brustpresse": "3023S 3042S 4402S", "schraeg-brustpresse-pl": "4329P 4365P",
+    "negativ-brustpresse-pl": "4346P 4362P", "klimmzug-assist": "3017S", "dips-assist": "3017S",
+    "waden-stehend": "3018S", "waden-pl": "4345P", "waden-sitzend": "3027S 4026P", "donkey-calf": "3094S",
+    "latzug-maschine": "3020S 3044S 3047S 5015S", "latzug-pl": "4311P", "latzug": "4116K", "latzug-eng": "4116K",
+    "reverse-fly": "3025S 4344P 5014S", "abduktoren": "3028S 3069S 5011S", "adduktoren": "3029S 5011S", "rotation": "3225S 4342P",
+    "beinpresse": "3030S 3031S 3046S 5001S 4314P 4354P", "beinpresse-45": "4023P 4324P 4361P",
+    "schulterpresse": "3032S 3043S 5015S", "schulterpresse-pl": "4320P 4363P", "nackendruecken": "3096S 4371P", "viking-press": "4388P",
+    "dip-maschine": "3036S 4335P", "bauchmaschine": "3008S 3034S 3037S 5012S 4307P 4317P 4343P",
+    "rudermaschine": "3039S 3040S 3045S 5003S 4322P 4327P", "kabelrudern": "4016K", "kabelrudern-einarmig": "4016K",
+    "high-row-pl": "4340P", "low-row-pl": "4319P", "t-bar": "4018P", "rudern-pl": "4318P", "kreuzheben-maschine": "4401S 4332P 4333P",
+    "seitheben-maschine": "3050S 4325P", "unterarm-maschine": "3071S", "hackenschmidt": "4159P", "pendulum": "4353P", "belt-squat": "4360P",
+    "kniebeuge-maschine": "4038P", "sissy-squat": "4347B", "tibialis-raise": "4348P", "hipthrust-maschine": "4416S", "hipthrust-pl": "4352P",
+    "cable-cross": "4004K 4012K", "cable-cross-low": "4004K 4012K",
+    "bank-smith": "4036K", "schraegbank-smith": "4036K", "kniebeuge-smith": "4036K", "schulterdruecken-smith": "4036K", "waden-smith": "4036K",
+    "bankdruecken": "4097B 4103B", "schraegbank-lh": "4096B", "negativbank-lh": "4007B 4847B", "scott-sz": "4019B 4093B",
+    "hyperext": "4028B 4119B 4165B", "nordic": "4434B", "dips-brust": "4021B", "dips-tri": "4021B", "beinheben-stuetz": "4031B 4046B", "situps": "4027B"
   };
-  var GYM80_SERIES = { S: "Sygnum", P: "Pure Kraft", K: "Kabelstation" };
+  var GYM80_SERIES = { S: "Sygnum", P: "Pure Kraft", K: "Station", B: "Basic/Bank" };
   function gym80Of(id) {
     return (GYM80[id] || "").split(" ").filter(Boolean).map(function (t) { var m = t.match(/^(\d+)([A-Z]?)$/); return { no: m[1], series: GYM80_SERIES[m[2]] || "" }; });
   }
@@ -3853,7 +3893,7 @@
       if (!items.length) return;
       var meta = (s.name ? s.name + " · " : "") + (s.backfill ? "nachgetragen · " : "") + fmtTime(s.start) + (s.end ? "–" + fmtTime(s.end) + " Uhr · " + fmtDuration(s.end - s.start) : " Uhr") +
         " · " + statsText(sessionStats(items));
-      groups.push({ sort: s.start, title: fmtDay(s.date), meta: meta, items: items, sid: s.id });
+      groups.push({ sort: s.start, title: fmtDay(s.date), meta: meta, items: items, sid: s.id, key: s.id });
     });
     // Einträge aus der Zeit vor den Trainings-Sessions, nach Tag gruppiert
     var legacy = {};
@@ -3863,7 +3903,7 @@
     });
     Object.keys(legacy).forEach(function (d) {
       var p = parseIso(d);
-      groups.push({ sort: p ? p.getTime() : 0, title: fmtDay(d), meta: "ohne Zeitmessung · " + statsText(sessionStats(legacy[d])), items: legacy[d] });
+      groups.push({ sort: p ? p.getTime() : 0, title: fmtDay(d), meta: "ohne Zeitmessung · " + statsText(sessionStats(legacy[d])), items: legacy[d], key: "d:" + d });
     });
     groups.sort(function (a, b) { return b.sort - a.sort; });
 
@@ -3872,12 +3912,153 @@
       return;
     }
     box.innerHTML = groups.map(function (g) {
+      if (state.histEdit && state.histEdit.key === g.key) return histEditHtml(g);
       return '<div class="card"><p class="day-date">' + esc(g.title) + "</p>" +
         '<p class="meta" style="margin:0 0 4px">' + esc(g.meta) + "</p>" +
         g.items.map(function (w) { return workoutRow(w, false); }).join("") +
-        (g.sid ? '<div class="hist-actions"><button type="button" class="btn-link" data-action="session-reopen" data-id="' + esc(g.sid) + '">Übungen ergänzen</button>' +
-          '<button type="button" class="btn-link" data-action="tpl-from-session" data-id="' + esc(g.sid) + '">Als Plan speichern</button></div>' : "") + "</div>";
+        '<div class="hist-actions"><button type="button" class="btn-link" data-action="he-open" data-id="' + esc(g.key) + '">Bearbeiten</button>' +
+        (g.sid ? '<button type="button" class="btn-link" data-action="session-reopen" data-id="' + esc(g.sid) + '">Übungen ergänzen</button>' +
+          '<button type="button" class="btn-link" data-action="tpl-from-session" data-id="' + esc(g.sid) + '">Als Plan speichern</button>' : "") + "</div></div>";
     }).join("");
+  }
+
+  // ---------- Training im Nachhinein bearbeiten ----------
+  function histEditStart(key) {
+    var act = activeSession();
+    if (act && act.id === key) return;
+    var sess = key.indexOf("d:") === 0 ? null : sessionById(key);
+    var day = sess ? sess.date : key.slice(2);
+    var items = sess ? sessionWorkouts(sess.id) : data.workouts.filter(function (w) { return !w.sessionId && w.date === day; });
+    var st = sess ? new Date(sess.start) : null;
+    state.histEdit = {
+      key: key, sid: sess ? sess.id : null, date: day,
+      time: st ? pad(st.getHours()) + ":" + pad(st.getMinutes()) : "",
+      dur: sess && sess.end ? String(Math.max(1, Math.round((sess.end - sess.start) / 60000))) : "60",
+      name: sess && sess.name ? sess.name : "", error: "",
+      items: items.map(function (w) {
+        return { id: w.id, exerciseId: w.exerciseId, other: !!w.other, removed: false,
+          sets: w.sets.map(function (x) { var d = setToDraft(x); d.rir = x.rir != null ? x.rir : null; return d; }) };
+      })
+    };
+    state.pendingDelete = null;
+  }
+  function histEditHtml(g) {
+    var E = state.histEdit;
+    var fields = '<div class="body-grid">' +
+      '<label class="field">Datum<input type="date" data-he-field="date" max="' + todayIso() + '" value="' + esc(E.date) + '"></label>' +
+      (E.sid
+        ? '<label class="field">Beginn<input type="time" data-he-field="time" value="' + esc(E.time) + '"></label>' +
+          '<label class="field">Dauer (min)<input type="text" inputmode="numeric" autocomplete="off" data-he-field="dur" value="' + esc(E.dur) + '"></label>' +
+          '<label class="field">Name (optional)<input type="text" autocomplete="off" maxlength="40" placeholder="z. B. Push" data-he-field="name" value="' + esc(E.name) + '"></label>'
+        : "") + "</div>";
+    var exHtml = E.items.map(function (it, i) {
+      var exr = findEx(it.exerciseId);
+      var name = exr ? exr.name : "Unbekannte Übung";
+      if (it.removed) {
+        return '<div class="he-ex is-removed"><span><strong>' + esc(name) + "</strong> wird entfernt</span>" +
+          '<button type="button" class="btn-link" data-action="he-ex-restore" data-index="' + i + '">Behalten</button></div>';
+      }
+      var head = '<div class="he-ex-head"><div><strong>' + esc(name) + "</strong>" + (exr ? '<span class="meta"> · ' + esc(exr.eq) + "</span>" : "") + "</div>" +
+        '<button type="button" class="btn-link btn-danger" data-action="he-ex-remove" data-index="' + i + '">Übung entfernen</button></div>';
+      if (!exr) return '<div class="he-ex">' + head + '<p class="meta" style="margin:0">Diese Übung gibt es nicht mehr; ihre Sätze bleiben unverändert.</p></div>';
+      var f = kindFields(exr.kind);
+      var cols = "grid-template-columns: 2.4em repeat(" + f.length + ", minmax(0, 1fr)) 44px";
+      var rows = '<div class="he-set he-set-head" style="' + cols + '" aria-hidden="true"><span>Satz</span>' + f.map(function (x) { return "<span>" + esc(x[1]) + "</span>"; }).join("") + "<span></span></div>" +
+        it.sets.map(function (st, j) {
+          var lbl = st.type && TYPE_SHORT[st.type] ? TYPE_SHORT[st.type] : String(j + 1);
+          return '<div class="he-set" style="' + cols + '"><span class="set-no">' + esc(lbl) + "</span>" +
+            f.map(function (x) {
+              return '<input class="num" type="text" inputmode="' + x[2] + '" autocomplete="off" data-he-i="' + i + '" data-he-s="' + j + '" data-he-f="' + x[0] + '" placeholder="' + esc(x[4]) + '" value="' + esc(st[x[0]] || "") + '" aria-label="' + esc(name + ", Satz " + (j + 1) + ": " + x[5]) + '">';
+            }).join("") +
+            '<button type="button" class="icon-btn" data-action="he-set-remove" data-index="' + i + '" data-set="' + j + '" aria-label="' + esc(name + ", Satz " + (j + 1) + " entfernen") + '">' + IC.x + "</button></div>";
+        }).join("");
+      var other = exr.kind === "w" || exr.kind === "wt"
+        ? '<label class="switch-row other-row"><span><strong>Anderes Gerät</strong><span class="meta">Gewicht optional, zählt nicht für Bestwerte</span></span>' +
+          '<input type="checkbox" class="switch" data-he-other="' + i + '"' + (it.other ? " checked" : "") + "></label>"
+        : "";
+      return '<div class="he-ex">' + head + rows +
+        '<button type="button" class="btn-link he-add" data-action="he-set-add" data-index="' + i + '">+ Satz</button>' + other + "</div>";
+    }).join("");
+    return '<div class="card hist-edit" role="group" aria-labelledby="he-title"><p class="day-date" id="he-title">Training bearbeiten</p>' +
+      '<p class="meta" style="margin:0">' + esc(g.title) + "</p>" + fields + exHtml +
+      (E.error ? '<div class="error" role="alert">' + esc(E.error) + "</div>" : "") +
+      '<div class="tpl-actions"><button type="button" class="btn" data-action="he-save">Änderungen speichern</button>' +
+      '<button type="button" class="btn-quiet" data-action="he-cancel">Abbrechen</button></div></div>';
+  }
+  function histEditSave() {
+    var E = state.histEdit;
+    if (!E) return;
+    var problem = "", startTs = 0, dur = 0;
+    if (!parseIso(E.date)) problem = "Bitte ein gültiges Datum wählen.";
+    else if (E.date > todayIso()) problem = "Das Datum liegt in der Zukunft. Trainings gehen nur für heute oder früher.";
+    if (!problem && E.sid) {
+      var tm = String(E.time || "").match(/^(\d{1,2}):(\d{2})$/);
+      dur = int(E.dur);
+      if (!tm) problem = "Bitte die Beginnzeit eintragen, z. B. 18:00.";
+      else if (!dur || dur < 1 || dur > 600) problem = "Bitte die Dauer in Minuten eintragen (1 bis 600).";
+      else {
+        var pd = parseIso(E.date);
+        startTs = new Date(pd.getFullYear(), pd.getMonth(), pd.getDate(), +tm[1], +tm[2]).getTime();
+        if (startTs > Date.now()) problem = "Der Beginn liegt in der Zukunft.";
+      }
+    }
+    var parsed = {};
+    E.items.forEach(function (it) {
+      if (problem || it.removed) return;
+      var exr = findEx(it.exerciseId);
+      if (!exr) return;
+      var r = parseSets(exr, it.sets, it.other);
+      if (r.problem) problem = exr.name + ", " + r.problem;
+      else if (!r.sets.length) problem = exr.name + ": Es ist kein Satz mehr übrig. Trag einen Satz ein oder entferne die Übung.";
+      else parsed[it.id] = r.sets;
+    });
+    if (problem) { E.error = problem; renderHistory(); return; }
+
+    var sess = E.sid ? sessionById(E.sid) : null;
+    var byId = {}; data.workouts.forEach(function (w) { byId[w.id] = w; });
+    var snap = JSON.parse(JSON.stringify({ s: sess, w: E.items.map(function (it) { return byId[it.id]; }).filter(Boolean) }));
+    var now = Date.now();
+    var allRemoved = E.items.every(function (it) { return it.removed; });
+    E.items.forEach(function (it) {
+      var w = byId[it.id];
+      if (!w) return;
+      if (it.removed) { data.workouts = data.workouts.filter(function (x) { return x.id !== w.id; }); tomb(w.id); return; }
+      w.date = E.date;
+      if (parsed[it.id]) w.sets = parsed[it.id];
+      var exr = findEx(w.exerciseId);
+      if (it.other && exr && (exr.kind === "w" || exr.kind === "wt")) w.other = true; else delete w.other;
+      w.u = now;
+    });
+    if (sess) {
+      if (allRemoved) { data.sessions = data.sessions.filter(function (x) { return x.id !== sess.id; }); tomb(sess.id); }
+      else {
+        sess.date = E.date; sess.start = startTs; sess.end = startTs + dur * 60000;
+        var nm = String(E.name || "").trim();
+        if (nm) sess.name = nm; else delete sess.name;
+        sess.u = now;
+      }
+    }
+    if (!save(data)) { data = load(); E.error = "Speichern nicht möglich. Dieser Browser erlaubt gerade keine gespeicherten Daten."; renderHistory(); return; }
+    state.histEdit = null;
+    render();
+    toast(allRemoved ? "Training gelöscht." : "Änderungen gespeichert.", false, function () { histEditUndo(snap); });
+  }
+  // Rückgängig: alter Stand zurück; Gelöschtes kommt unter neuer Kennung wieder (Löschungen bleiben endgültig)
+  function histEditUndo(snap) {
+    var now = Date.now(), sid = snap.s ? snap.s.id : null;
+    if (snap.s) {
+      var cur = sessionById(snap.s.id);
+      if (cur) { Object.keys(cur).forEach(function (k) { if (k !== "id") delete cur[k]; }); Object.keys(snap.s).forEach(function (k) { cur[k] = snap.s[k]; }); cur.u = now; }
+      else { var ns = JSON.parse(JSON.stringify(snap.s)); ns.id = uid(); ns.u = now; data.sessions.push(ns); sid = ns.id; }
+    }
+    snap.w.forEach(function (old) {
+      var cur = data.workouts.filter(function (w) { return w.id === old.id; })[0];
+      if (cur) { cur.date = old.date; cur.sets = old.sets; if (old.other) cur.other = true; else delete cur.other; cur.u = now; if (sid) cur.sessionId = sid; }
+      else { var nw = JSON.parse(JSON.stringify(old)); nw.id = uid(); nw.u = now; if (sid) nw.sessionId = sid; data.workouts.push(nw); }
+    });
+    save(data);
+    render();
+    toast("Wiederhergestellt.");
   }
 
   // ---------- Bereiche (Reiter) ----------
@@ -5795,14 +5976,12 @@
   }
 
   // ---------- Aktionen ----------
-  function saveWorkout() {
-    var exr = findEx(state.exerciseId);
-    if (!exr) return;
+  // Prüft Satz-Entwürfe (Texte aus den Feldern) und macht daraus gespeicherte Sätze
+  function parseSets(exr, drafts, otherOn) {
     var sets = [];
     var problem = "";
     var fieldsS = kindFields(exr.kind);
-    var otherOn = !!state.otherFor[exr.id];
-    state.sets.forEach(function (s, i) {
+    drafts.forEach(function (s, i) {
       if (problem) return;
       var empty = fieldsS.every(function (f) { return s[f[0]] === "" || s[f[0]] == null; });
       if (empty) return;
@@ -5837,6 +6016,15 @@
         if (s.rir != null && s.type !== "w" && hasReps(exr.kind)) sets[n0].rir = s.rir;
       }
     });
+    return { sets: sets, problem: problem };
+  }
+
+  function saveWorkout() {
+    var exr = findEx(state.exerciseId);
+    if (!exr) return;
+    var otherOn = !!state.otherFor[exr.id];
+    var parsed = parseSets(exr, state.sets, otherOn);
+    var sets = parsed.sets, problem = parsed.problem;
     if (!problem && !sets.length) problem = "Trag mindestens einen Satz ein.";
     if (problem) { state.logError = problem; renderLogger(); return; }
 
@@ -6576,6 +6764,7 @@
         startBackfill();
         break;
       case "session-reopen":
+        state.histEdit = null;
         reopenSession(id);
         break;
       case "toast-undo":
@@ -6633,6 +6822,40 @@
         renderSession();
         renderHistory();
         break;
+      case "he-open":
+        histEditStart(id);
+        renderHistory();
+        var heFirst = document.querySelector("#history .hist-edit input");
+        if (heFirst) { var heCard = heFirst.closest(".hist-edit"); if (heCard && heCard.scrollIntoView) heCard.scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" }); }
+        break;
+      case "he-cancel":
+        state.histEdit = null;
+        renderHistory();
+        break;
+      case "he-save":
+        histEditSave();
+        break;
+      case "he-ex-remove":
+      case "he-ex-restore":
+        if (state.histEdit && state.histEdit.items[+el.getAttribute("data-index")]) state.histEdit.items[+el.getAttribute("data-index")].removed = action === "he-ex-remove";
+        renderHistory();
+        break;
+      case "he-set-add":
+        if (state.histEdit) {
+          var heIt = state.histEdit.items[+el.getAttribute("data-index")];
+          if (heIt) { var heLast = heIt.sets[heIt.sets.length - 1]; var heNew = blankSet(); if (heLast) { heNew.w = heLast.w; heNew.r = heLast.r; heNew.t = heLast.t; heNew.min = heLast.min; heNew.km = heLast.km; } heIt.sets.push(heNew); }
+          renderHistory();
+          var heIns = document.querySelectorAll('#history input[data-he-i="' + el.getAttribute("data-index") + '"]');
+          if (heIns.length) heIns[heIns.length - (heIns.length > 1 ? 2 : 1)].focus();
+        }
+        break;
+      case "he-set-remove":
+        if (state.histEdit) {
+          var heIt2 = state.histEdit.items[+el.getAttribute("data-index")];
+          if (heIt2) heIt2.sets.splice(+el.getAttribute("data-set"), 1);
+          renderHistory();
+        }
+        break;
       case "del-yes":
         data.workouts = data.workouts.filter(function (w) { return w.id !== id; });
         tomb(id);
@@ -6666,6 +6889,13 @@
       return;
     }
     if (t.id === "body-date") { state.bodyDate = t.value; return; }
+    if (state.histEdit && t.hasAttribute("data-he-f")) {
+      var heS = (state.histEdit.items[+t.getAttribute("data-he-i")] || { sets: [] }).sets[+t.getAttribute("data-he-s")];
+      if (heS) heS[t.getAttribute("data-he-f")] = t.value;
+      return;
+    }
+    if (state.histEdit && t.hasAttribute("data-he-field")) { state.histEdit[t.getAttribute("data-he-field")] = t.value; return; }
+    if (state.histEdit && t.hasAttribute("data-he-other")) { var heO = state.histEdit.items[+t.getAttribute("data-he-other")]; if (heO) heO.other = t.checked; return; }
     if (t.id === "tpl-name" || t.hasAttribute("data-tpl-min") || t.hasAttribute("data-tpl-max")) {
       var te = tplById(state.tplEdit);
       if (!te) return;

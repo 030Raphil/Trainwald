@@ -958,6 +958,32 @@
   .he-set .set-no { text-align: center; }
   .he-set .icon-btn { width: 44px; background: transparent; color: var(--muted); }
   .he-add { align-self: flex-start; min-height: 44px; }
+  .hist-month { margin: 8px 2px -4px; }
+  .hist-card { padding: 0; }
+  .hist-sum { list-style: none; display: flex; align-items: center; gap: 12px; padding: 12px 14px 12px 16px; cursor: pointer; min-height: 44px; border-radius: var(--r-card); }
+  .hist-sum::-webkit-details-marker { display: none; }
+  .hist-sum:active { background: var(--fill); }
+  .hist-sum-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .hist-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .hist-top .day-date { margin: 0; flex: none; }
+  .hist-name { font-weight: 600; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .hist-names { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist-chev { flex: none; color: var(--muted); display: grid; transition: transform 0.2s var(--ease-out); }
+  .hist-card[open] > .hist-sum .hist-chev { transform: rotate(90deg); }
+  .hist-card[open] > .hist-sum .hist-names { display: none; }
+  .hist-body { padding: 0 16px 6px; border-top: 1px solid var(--border); padding-top: 10px; }
+  .week-suggest { display: flex; flex-direction: column; gap: 10px; background: var(--input); border-radius: var(--r-ctl); padding: 12px; }
+  .ws-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .ws-title { font-weight: 700; font-size: 1.02rem; }
+  .ws-head .icon-btn { flex: none; background: var(--card); }
+  .ws-note { margin: 0; font-size: 0.9rem; color: var(--accent); font-weight: 600; }
+  .week-suggest .pick-list { display: grid; gap: 8px; }
+  .week-suggest .btn-link { align-self: flex-start; min-height: 44px; }
+  .week-weak { display: flex; flex-direction: column; gap: 8px; }
+  .chip-n { font-variant-numeric: tabular-nums; opacity: 0.7; margin-left: 4px; }
+  @media (prefers-reduced-motion: reduce) { .hist-chev { transition: none; } }
+  .hist-sum::before { content: none; display: none; }
+  .week-weak .chips { flex-wrap: wrap; width: auto; padding: 0; }
   /* Zurück aus der Übung (wie eine Navigationsleiste) */
   .nav-back { font: inherit; display: inline-flex; align-items: center; gap: 2px; min-height: 44px; padding: 0 8px 0 0; margin: -6px 0 -4px; border: 0; background: transparent; color: var(--accent); font-size: 1.05rem; cursor: pointer; align-self: flex-start; }
   .nav-back svg { width: 22px; height: 22px; }
@@ -2793,6 +2819,8 @@
     pickMode: "one",
     endSummary: null,
     otherFor: {},
+    histOpen: {},
+    weekMuscle: null,
     backfillOpen: false,
     rangeOpen: false,
     pickGroups: [],
@@ -3025,6 +3053,96 @@
     });
     return { exercises: list.length, sets: sets, volume: Math.round(vol), cardio: Math.round(cardio) };
   }
+  // ---------- Kalorien (Schätzung) ----------
+  // MET-Werte aus dem 2024 Adult Compendium of Physical Activities (Herrmann et al. 2024):
+  // 02054 Krafttraining, mehrere Übungen, 8–15 Wdh. = 3,5; Crosstrainer mäßig 5,0; Rudergerät 7,3;
+  // Treppensteiger 9,3; Seilspringen 11,0; Fahrradergometer mäßig 6,8 (Compendium 2011).
+  var MET_STRENGTH = 3.5;
+  var MET_CARDIO = { crosstrainer: 5.0, rudergeraet: 7.3, ergometer: 6.8, stepper: 9.3, seilspringen: 11.0 };
+  var KG_DEFAULT = 75;
+  function treadmillMet(min, km) {
+    if (!min || !km) return 6.0;
+    var mpm = km * 1000 / min;
+    // ACSM-Gleichungen: Gehen bis etwa 7,5 km/h, darüber Laufen
+    var vo2 = mpm < 125 ? 0.1 * mpm + 3.5 : 0.2 * mpm + 3.5;
+    return Math.max(2.5, Math.min(18, vo2 / 3.5));
+  }
+  function bodyWeightAt(iso) {
+    var pick = null;
+    data.body.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }).forEach(function (e) {
+      if (!e.weight) return;
+      if (!pick || e.date <= iso) pick = e;
+    });
+    return pick ? pick.weight : null;
+  }
+  // MET je Kraftübung nach beteiligter Muskelmasse (gemessen inklusive Satzpausen):
+  // große Beinübungen wie Kniebeuge und Kreuzheben 5,0 (Compendium 02052; Bloomer 2005: ~6 bei 70 % 1RM),
+  // andere Grundübungen 4,0 (Phillips & Ziuraitis 2003: 3,9–4,2 an Geräten), Isolationsübungen 3,0
+  // (Compendium 02056; Vezina 2011: Curl-ups 3,1). Mit Körpergewicht etwas niedriger (Vezina: Liegestütze 3,3, Ausfallschritte 4,1).
+  function strengthMet(x) {
+    var m = MAP[x.id];
+    if (!m) return MET_STRENGTH;
+    var all = m.p.concat(m.s);
+    var legs = all.some(function (id) { return KNEE_EXT.indexOf(id) !== -1; }) && all.some(function (id) { return HIP_EXT.indexOf(id) !== -1; });
+    var hinge = m.p.some(function (id) { return HIP_EXT.indexOf(id) !== -1; }) && all.indexOf("erector") !== -1;
+    var groupsP = {}, armP = false, elbowS = false;
+    m.p.forEach(function (id) { var g = groupOfMuscle(id); if (g) { groupsP[g[0]] = 1; if (g[0] === "bizeps" || g[0] === "trizeps") armP = true; } });
+    m.s.forEach(function (id) { var g = groupOfMuscle(id); if (g && (g[0] === "bizeps" || g[0] === "trizeps")) elbowS = true; });
+    // Grundübung: mehrere Partien als Hauptmuskeln, Drücken/Ziehen mit Ellbogenbeteiligung oder großer Gesäßmuskel als Hauptmuskel
+    var compound = Object.keys(groupsP).length >= 2 || (!armP && elbowS) || m.p.indexOf("glute_max") !== -1;
+    var met = legs || hinge ? 5.0 : compound ? 4.0 : 3.0;
+    if (x.kind === "bw" || x.kind === "as") met *= 0.82;
+    return Math.max(3.0, met);
+  }
+  function sessionKcal(durMs, list, iso) {
+    var kg = bodyWeightAt(iso || todayIso()), assumed = !kg;
+    kg = kg || KG_DEFAULT;
+    var cardioMin = 0, cardioKcal = 0, setSum = 0, metSum = 0;
+    list.forEach(function (w) {
+      var x = findEx(w.exerciseId);
+      if (!x || x.kind !== "c") {
+        // Zeit der Kraftübungen nach Anzahl der Sätze verteilt, Aufwärmsätze zählen mit
+        var n = w.sets.length;
+        if (!n) return;
+        setSum += n;
+        metSum += n * (x ? strengthMet(x) : MET_STRENGTH);
+        return;
+      }
+      w.sets.forEach(function (st) {
+        var m = st.min || 0;
+        if (!m) return;
+        cardioMin += m;
+        cardioKcal += (x.id === "laufband" ? treadmillMet(m, st.km) : MET_CARDIO[x.id] || 6.0) * kg * m / 60;
+      });
+    });
+    var strengthMin = setSum ? Math.max(0, durMs / 60000 - cardioMin) : 0;
+    var met = setSum ? metSum / setSum : 0;
+    var strengthKcal = met * kg * strengthMin / 60;
+    var r5 = function (v) { return Math.round(v / 5) * 5; };
+    return { kcal: r5(strengthKcal + cardioKcal), kg: kg, assumed: assumed, met: met, strengthMin: Math.round(strengthMin), strengthKcal: r5(strengthKcal), cardioMin: Math.round(cardioMin), cardioKcal: r5(cardioKcal) };
+  }
+  function kcalHelpHtml(k) {
+    return '<details class="mini-help"><summary>' + (k.assumed ? "Kalorien mit " + KG_DEFAULT + " kg geschätzt" : "Wie werden Kalorien geschätzt?") + "</summary>" +
+      '<p class="research">Gerechnet wird Zeit × Körpergewicht (' + esc(fmtNum(k.kg)) + " kg) × MET-Wert, und zwar je Übung: " +
+      "Große Beinübungen wie Kniebeuge, Beinpresse oder Kreuzheben zählen mit 5 MET, andere Grundübungen wie Bankdrücken oder Rudern mit 4, Isolationsübungen wie Curls oder Seitheben mit 3. " +
+      "Die Trainingszeit wird nach der Zahl der Sätze auf die Übungen verteilt, Pausen eingeschlossen. Cardio zählt nach Gerät mit 5 bis 11 MET, das Laufband nach Tempo, wenn du die Strecke einträgst." +
+      (k.strengthKcal ? " Diesmal: Krafttraining " + k.strengthMin + " min mit durchschnittlich " + esc(fmtNum(Math.round(k.met * 10) / 10)) + " MET ≈ " + k.strengthKcal + " kcal" + (k.cardioKcal ? ", Cardio " + k.cardioMin + " min ≈ " + k.cardioKcal + " kcal." : ".") : "") +
+      " Grundlage sind das Compendium of Physical Activities 2024 und Messstudien zum Krafttraining. Ohne Pulsmessung bleibt es eine Schätzung; echte Werte können um 20 % und mehr abweichen." +
+      (k.assumed ? " Trag dein Gewicht unter Fortschritt → Körper ein, dann rechnet Trainwald mit deinem Gewicht." : "") + "</p></details>";
+  }
+  function shortStats(st) {
+    var parts = [st.exercises + (st.exercises === 1 ? " Übung" : " Übungen")];
+    if (st.sets || !st.cardio) parts.push(st.sets + (st.sets === 1 ? " Satz" : " Sätze"));
+    if (st.cardio) parts.push(st.cardio + " min Cardio");
+    return parts.join(" · ");
+  }
+  function fmtDayShort(iso) {
+    var d = parseIso(iso);
+    if (!d) return iso;
+    var o = { weekday: "short", day: "numeric", month: "short" };
+    if (d.getFullYear() !== new Date().getFullYear()) o.year = "numeric";
+    return d.toLocaleDateString("de-DE", o);
+  }
   function statsText(st) {
     var parts = [st.exercises + (st.exercises === 1 ? " Übung" : " Übungen")];
     if (st.sets || !st.cardio) parts.push(st.sets + (st.sets === 1 ? " Satz" : " Sätze"));
@@ -3080,11 +3198,13 @@
         var st = sum.stats, cells = [["Dauer", fmtDuration(sum.dur)], ["Übungen", String(st.exercises)], ["Sätze", String(st.sets)]];
         if (st.volume) cells.push(["Bewegt", st.volume.toLocaleString("de-DE") + " kg"]);
         else if (st.cardio) cells.push(["Cardio", st.cardio + " min"]);
+        if (sum.kcal && sum.kcal.kcal) cells.push(["Kalorien (ca.)", sum.kcal.kcal.toLocaleString("de-DE") + " kcal"]);
         sumHtml = '<div class="card end-card" role="status"><div class="end-head"><div><span class="sub-h">Training abgeschlossen</span>' +
           '<div class="session-title">' + (sum.name ? esc(sum.name) : "Stark gemacht") + "</div></div>" +
           '<button type="button" class="btn-quiet" data-action="end-dismiss">Schließen</button></div>' +
           '<dl class="end-stats">' + cells.map(function (c) { return "<div><dt>" + c[0] + "</dt><dd>" + esc(c[1]) + "</dd></div>"; }).join("") + "</dl>" +
           (sum.prs.length ? '<p class="end-pr"><strong>' + (sum.prs.length === 1 ? "Neuer Bestwert" : sum.prs.length + " neue Bestwerte") + ":</strong> " + esc(sum.prs.join(", ")) + "</p>" : "") +
+          (sum.kcal && sum.kcal.kcal ? kcalHelpHtml(sum.kcal) : "") +
           "</div>";
       }
       box.innerHTML = sumHtml + '<div class="card session-card idle">' +
@@ -3891,9 +4011,12 @@
       if (act && s.id === act.id) return;
       var items = sessionWorkouts(s.id);
       if (!items.length) return;
+      var st = sessionStats(items), kc = s.end ? sessionKcal(s.end - s.start, items, s.date) : null;
       var meta = (s.name ? s.name + " · " : "") + (s.backfill ? "nachgetragen · " : "") + fmtTime(s.start) + (s.end ? "–" + fmtTime(s.end) + " Uhr · " + fmtDuration(s.end - s.start) : " Uhr") +
-        " · " + statsText(sessionStats(items));
-      groups.push({ sort: s.start, title: fmtDay(s.date), meta: meta, items: items, sid: s.id, key: s.id });
+        " · " + statsText(st) + (kc && kc.kcal ? " · ca. " + kc.kcal.toLocaleString("de-DE") + " kcal" : "");
+      groups.push({ sort: s.start, date: s.date, title: fmtDay(s.date), meta: meta, items: items, sid: s.id, key: s.id, name: s.name || "",
+        line1: fmtTime(s.start) + (s.end ? " · " + fmtDuration(s.end - s.start) : "") + (s.backfill ? " · nachgetragen" : ""),
+        line2: shortStats(st) + (kc && kc.kcal ? " · ca. " + kc.kcal.toLocaleString("de-DE") + " kcal" : "") });
     });
     // Einträge aus der Zeit vor den Trainings-Sessions, nach Tag gruppiert
     var legacy = {};
@@ -3903,7 +4026,9 @@
     });
     Object.keys(legacy).forEach(function (d) {
       var p = parseIso(d);
-      groups.push({ sort: p ? p.getTime() : 0, title: fmtDay(d), meta: "ohne Zeitmessung · " + statsText(sessionStats(legacy[d])), items: legacy[d], key: "d:" + d });
+      var lst = sessionStats(legacy[d]);
+      groups.push({ sort: p ? p.getTime() : 0, date: d, title: fmtDay(d), meta: "ohne Zeitmessung · " + statsText(lst), items: legacy[d], key: "d:" + d, name: "",
+        line1: "ohne Zeitmessung", line2: shortStats(lst) });
     });
     groups.sort(function (a, b) { return b.sort - a.sort; });
 
@@ -3911,14 +4036,25 @@
       box.innerHTML = '<div class="card"><p class="empty" style="margin:0">Hier erscheinen deine Trainings, sobald du das erste beendet hast.</p></div>';
       return;
     }
+    var lastMonth = "";
     box.innerHTML = groups.map(function (g) {
-      if (state.histEdit && state.histEdit.key === g.key) return histEditHtml(g);
-      return '<div class="card"><p class="day-date">' + esc(g.title) + "</p>" +
-        '<p class="meta" style="margin:0 0 4px">' + esc(g.meta) + "</p>" +
+      var pd = parseIso(g.date), month = pd ? pd.toLocaleDateString("de-DE", { month: "long", year: "numeric" }) : "";
+      var head = month !== lastMonth ? '<h3 class="sub-h hist-month">' + esc(month) + "</h3>" : "";
+      lastMonth = month;
+      if (state.histEdit && state.histEdit.key === g.key) return head + histEditHtml(g);
+      var names = g.items.map(function (w) { var x = findEx(w.exerciseId); return x ? x.name : "Unbekannte Übung"; });
+      var open = !!state.histOpen[g.key] || state.pendingDelete && g.items.some(function (w) { return w.id === state.pendingDelete; });
+      return head + '<details class="card hist-card" data-key="' + esc(g.key) + '"' + (open ? " open" : "") + ">" +
+        '<summary class="hist-sum"><span class="hist-sum-text">' +
+          '<span class="hist-top"><span class="day-date">' + esc(fmtDayShort(g.date)) + "</span>" + (g.name ? '<span class="hist-name">' + esc(g.name) + "</span>" : "") + "</span>" +
+          '<span class="meta">' + esc(g.line1 + " · " + g.line2) + "</span>" +
+          '<span class="meta hist-names">' + esc(names.join(", ")) + "</span></span>" +
+          '<span class="hist-chev" aria-hidden="true">' + IC.right + "</span></summary>" +
+        '<div class="hist-body"><p class="meta" style="margin:0 0 4px">' + esc(g.meta) + "</p>" +
         g.items.map(function (w) { return workoutRow(w, false); }).join("") +
         '<div class="hist-actions"><button type="button" class="btn-link" data-action="he-open" data-id="' + esc(g.key) + '">Bearbeiten</button>' +
         (g.sid ? '<button type="button" class="btn-link" data-action="session-reopen" data-id="' + esc(g.sid) + '">Übungen ergänzen</button>' +
-          '<button type="button" class="btn-link" data-action="tpl-from-session" data-id="' + esc(g.sid) + '">Als Plan speichern</button>' : "") + "</div></div>";
+          '<button type="button" class="btn-link" data-action="tpl-from-session" data-id="' + esc(g.sid) + '">Als Plan speichern</button>' : "") + "</div></div></details>";
     }).join("");
   }
 
@@ -4109,6 +4245,28 @@
     return "h4";
   }
 
+  function shortMuscle(id) { return SHORT[id] ? SHORT[id].join(" ").replace(/- /, "") : MUSCLE_NAMES[id]; }
+  function markWeekMuscle(box, id, label) {
+    box.querySelectorAll("path.mus.sel").forEach(function (q) { q.classList.remove("sel"); });
+    box.querySelectorAll('path.mus[data-m="' + id + '"]').forEach(function (q) { q.classList.add("sel"); });
+    var cap = box.querySelector(".map-caption");
+    if (cap && label) { cap.textContent = label; cap.classList.add("on"); }
+  }
+  function weekSuggestHtml(vol) {
+    var id = state.weekMuscle;
+    if (!id || !MUSCLE_NAMES[id]) return "";
+    var res = exercisesForMuscles([id]);
+    var list = res.prim.filter(function (o) { return o.x.kind !== "c"; }).slice(0, 4);
+    if (!list.length) list = res.sec.filter(function (o) { return o.x.kind !== "c"; }).slice(0, 3);
+    var v = vol[id] || 0;
+    return '<div class="week-suggest" id="week-suggest" role="region" aria-labelledby="ws-title">' +
+      '<div class="ws-head"><div><div class="ws-title" id="ws-title">Übungen für ' + esc(MUSCLE_NAMES[id]) + "</div>" +
+        '<p class="meta" style="margin:0">' + esc(muscleStatus([id])) + "</p></div>" +
+        '<button type="button" class="icon-btn" data-action="week-muscle-close" aria-label="Vorschläge schließen">' + IC.x + "</button></div>" +
+      (v < 4 ? '<p class="ws-note">Diese Woche ' + (v ? "erst " + esc(fmtNum(v)) + (v === 1 ? " Satz" : " Sätze") : "noch kein Satz") + " – ein guter Kandidat fürs nächste Training.</p>" : "") +
+      '<div class="pick-list">' + list.map(pickRow).join("") + "</div>" +
+      '<button type="button" class="btn-link" data-action="week-pick-all" data-id="' + esc(id) + '">Alle Übungen für diesen Muskel</button></div>';
+  }
   function renderWeek() {
     var box = document.getElementById("week");
     var start = weekStartDate(state.weekOffset);
@@ -4168,9 +4326,25 @@
       var v = vol[id] || 0;
       labels[id] = MUSCLE_NAMES[id] + ": " + fmtNum(v) + (v === 1 ? " Satz" : " Sätze");
     });
+    // Wenig trainierte Muskeln als Abkürzung zu passenden Übungen
+    // Je Partie der am wenigsten trainierte Muskel, damit nicht acht Rückenmuskeln nebeneinanderstehen
+    var weak = [];
+    MUSCLE_GROUPS.forEach(function (g) {
+      var low = g[1].filter(function (id) { return id !== "tibialis" && MUSCLE_NAMES[id] && (vol[id] || 0) < 4; })
+        .sort(function (a, b) { return (vol[a] || 0) - (vol[b] || 0); });
+      if (low.length) weak.push(low[0]);
+    });
+    weak = weak.sort(function (a, b) { return (vol[a] || 0) - (vol[b] || 0); }).slice(0, 8);
+    var weakHtml = weak.length
+      ? '<div class="week-weak"><span class="sub-h">Wenig trainiert · Übungen ansehen</span><div class="chips">' + weak.map(function (id) {
+          return '<button type="button" class="chip sm" data-action="week-muscle" data-id="' + esc(id) + '" aria-pressed="' + (state.weekMuscle === id) + '">' +
+            esc(shortMuscle(id)) + ' <span class="chip-n">' + esc(fmtNum(vol[id] || 0)) + "</span></button>";
+        }).join("") + "</div></div>"
+      : "";
     box.innerHTML = nav +
       '<div class="muscles">' + bodySvg(roles, labels, null, label) +
-      '<p class="map-caption" aria-live="polite">Tippe auf einen Muskel, um seine Sätze zu sehen.</p></div>' +
+      '<p class="map-caption" aria-live="polite">Tippe auf einen Muskel, dann schlägt Trainwald passende Übungen vor.</p></div>' +
+      weekSuggestHtml(vol) + weakHtml +
       '<div class="heat-legend"><span>Sätze pro Woche:</span>' +
         '<span><span class="sw off"></span>0</span>' +
         '<span><span class="sw hb1"></span>unter 4</span>' +
@@ -4186,6 +4360,7 @@
       })() : "") +
       (unmapped ? '<p class="meta" style="margin:0">' + unmapped + (unmapped === 1 ? " Satz" : " Sätze") + " aus eigenen Übungen ohne Muskelzuordnung sind nicht eingerechnet.</p>" : "") +
       '<details class="mini-help"><summary>Wie wird gezählt?</summary><p class="research">Ein Satz zählt für jeden Hauptmuskel voll und für jeden mitbeteiligten Muskel zur Hälfte. Als Richtwert für Muskelaufbau gelten oft mindestens 10 Sätze pro Muskel und Woche (Schoenfeld et al. 2017).</p></details>';
+    if (state.weekMuscle) markWeekMuscle(box, state.weekMuscle, labels[state.weekMuscle]);
   }
 
   // ---------- Körpergewicht und Maße ----------
@@ -6110,7 +6285,7 @@
     state.rirFor = null;
     state.ssNext = null;
     // Abschluss: kurze Bilanz statt nur einer flüchtigen Meldung
-    state.endSummary = { name: act.name || "", dur: act.end - act.start, stats: sessionStats(list), prs: (act.prs || []).slice(), sid: act.id };
+    state.endSummary = { name: act.name || "", dur: act.end - act.start, stats: sessionStats(list), prs: (act.prs || []).slice(), sid: act.id, kcal: sessionKcal(act.end - act.start, list, act.date) };
     render();
     scrollToId("session");
   }
@@ -6178,6 +6353,13 @@
       renderBodyPick();
       var pt = document.querySelector("#body-pick .pick-result");
       if (pt && window.innerWidth < 700 && pt.scrollIntoView && !mp.closest(".detail-map")) pt.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+      return;
+    }
+    if (mp && mp.closest("#week")) {
+      state.weekMuscle = mp.getAttribute("data-m");
+      renderWeek();
+      var wsx = document.getElementById("week-suggest");
+      if (wsx && wsx.scrollIntoView && window.innerWidth < 700) wsx.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
       return;
     }
     if (mp) {
@@ -6356,6 +6538,27 @@
         openExercise(id);
         render();
         scrollToLogger();
+        break;
+      case "week-muscle":
+        state.weekMuscle = state.weekMuscle === id ? null : id;
+        renderWeek();
+        var wsy = document.getElementById("week-suggest");
+        if (wsy && wsy.scrollIntoView) wsy.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+        break;
+      case "week-muscle-close":
+        state.weekMuscle = null;
+        renderWeek();
+        break;
+      case "week-pick-all":
+        state.pickMuscle = id;
+        state.pickMode = "one";
+        state.pickScope = "muscle";
+        state.pickMore = false;
+        state.bodyPick = true;
+        if (state.exerciseId) { state.exerciseId = null; state.logError = ""; }
+        setTab("training");
+        render();
+        scrollToId("body-pick");
         break;
       case "bodypick-toggle":
         state.bodyPick = !state.bodyPick;
@@ -7054,6 +7257,7 @@
   // Aufklappzustand der Maße merken (toggle-Ereignisse steigen nicht auf, daher Capture)
   document.addEventListener("toggle", function (ev) {
     if (ev.target && ev.target.id === "body-more") state.bodyMore = ev.target.open;
+    if (ev.target && ev.target.classList && ev.target.classList.contains("hist-card")) state.histOpen[ev.target.getAttribute("data-key")] = ev.target.open;
     if (ev.target && ev.target.classList && ev.target.classList.contains("range-box")) state.rangeOpen = ev.target.open;
     if (ev.target && ev.target.classList && ev.target.classList.contains("howto")) {
       state.howto[ev.target.getAttribute("data-ex")] = ev.target.open;

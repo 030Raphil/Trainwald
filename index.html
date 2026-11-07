@@ -410,7 +410,7 @@
 
   .set-grid {
     display: grid;
-    grid-template-columns: 2rem minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr) 2.75rem 2.25rem;
+    grid-template-columns: 2rem minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1.15fr) 2.75rem 2.25rem;
     gap: 6px;
     align-items: center;
   }
@@ -743,7 +743,7 @@
   .suggest .rest-pick .chip.sm { background: var(--card); }
   .suggest .rest-pick .chip.sm[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
   .plateau { border-top: 1px solid var(--accent); padding-top: 8px; }
-  .ss-banner { border-left: 4px solid var(--pr); background: var(--pr-soft); border-radius: var(--r-sm); padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; align-items: flex-start; }
+  .ss-banner { border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: var(--r-sm); padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; align-items: flex-start; }
   .ss-banner .meta { color: var(--text); opacity: 0.8; }
   .ss-tag { display: inline-block; font-size: 0.7rem; font-weight: 700; color: var(--pr); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
   .plan-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -984,6 +984,27 @@
   @media (prefers-reduced-motion: reduce) { .hist-chev { transition: none; } }
   .hist-sum::before { content: none; display: none; }
   .week-weak .chips { flex-wrap: wrap; width: auto; padding: 0; }
+  .load-hint { font-weight: 600; color: var(--text); }
+  .ss-label { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+  .ss-letter { flex: none; width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center; background: var(--accent); color: var(--accent-text); font-weight: 700; font-size: 0.85rem; }
+  .ss-name { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .ss-label .btn-link { flex: none; min-height: 44px; }
+  .ss-part { display: flex; flex-direction: column; gap: 8px; border-top: 1px dashed var(--border); padding-top: 10px; }
+  .ss-pick { display: flex; flex-direction: column; gap: 10px; background: var(--input); border-radius: var(--r-ctl); padding: 12px; }
+  .ss-pick select { width: 100%; }
+  .ss-part .set-no { display: grid; place-items: center; }
+  .logger-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 0; }
+  .logger-tools .chip.sm { min-height: 36px; }
+  .btn-link.muted { color: var(--muted); font-weight: 500; }
+  .logger-tools .chip.sm { padding: 5px 10px; font-size: 0.82rem; }
+  .logger-tools .chip-ico { margin-right: 4px; }
+  .ex-grid > .ex-sec { grid-column: 1 / -1; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 10px 2px 0; }
+  .empty { font-size: 0.95rem; line-height: 1.45; }
+  @media (max-width: 560px) {
+    .ex-grid > .ex-sec { background: var(--input); padding: 8px 16px 6px; border-top: 1px solid var(--border); }
+    .ex-grid > .ex-sec:first-child { border-top: 0; }
+    .ex-grid .ex { min-height: 52px; }
+  }
   /* Zurück aus der Übung (wie eine Navigationsleiste) */
   .nav-back { font: inherit; display: inline-flex; align-items: center; gap: 2px; min-height: 44px; padding: 0 8px 0 0; margin: -6px 0 -4px; border: 0; background: transparent; color: var(--accent); font-size: 1.05rem; cursor: pointer; align-self: flex-start; }
   .nav-back svg { width: 22px; height: 22px; }
@@ -2820,6 +2841,9 @@
     endSummary: null,
     otherFor: {},
     histOpen: {},
+    ssPair: null,
+    ssPickFor: null,
+    focusPartner: null,
     weekMuscle: null,
     backfillOpen: false,
     rangeOpen: false,
@@ -2913,20 +2937,24 @@
     if (!list.length) {
       grid.innerHTML = '<p class="empty" style="margin:0">Keine Übung gefunden. Du kannst unten eine eigene Übung anlegen.</p>';
     } else {
+      var secOn = !q && state.group !== "fav" && state.eq === "alle" && list.length > 6;
+      var lastSec = null;
       grid.innerHTML = list.map(function (x) {
+        var sec = isFav(x.id) ? "Favoriten" : x.eq, secHtml = "";
+        if (secOn && sec !== lastSec) { secHtml = '<div class="ex-sec" aria-hidden="true">' + esc(sec) + "</div>"; lastSec = sec; }
         var last = workoutsFor(x.id)[0];
-        var metaParts = [esc(x.eq)];
+        var metaParts = secOn && !isFav(x.id) ? [] : [esc(x.eq)];
         if (q || state.group === "fav") metaParts.unshift(esc(groupName(x.group)));
         if (/^\d{2,}$/.test(q)) {
           var hitNos = machineNos(x.id).filter(function (n) { return n.toLowerCase().indexOf(q) === 0; });
           if (hitNos.length) metaParts.push('<span class="no">Nr. ' + esc(hitNos.join(", ")) + "</span>");
         }
+        if (x.id !== state.exerciseId && draftHasValues(state.drafts[x.id])) metaParts.push('<span class="draft">nicht gespeichert</span>');
+        else if (last) metaParts.push('<span class="done">zuletzt ' + esc(fmtShort(last.date)) + "</span>");
         var meta = metaParts.join(" · ");
-        if (x.id !== state.exerciseId && draftHasValues(state.drafts[x.id])) meta += ' · <span class="draft">nicht gespeichert</span>';
-        else if (last) meta += ' · <span class="done">zuletzt ' + esc(fmtShort(last.date)) + '</span>';
         var fav = isFav(x.id);
-        return '<div class="ex-wrap"><button type="button" class="ex" data-action="pick" data-id="' + esc(x.id) + '" aria-pressed="' + (x.id === state.exerciseId) + '">' +
-          '<span class="ex-name">' + nameHtml(x.name) + '</span><span class="ex-meta">' + meta + '</span></button>' +
+        return secHtml + '<div class="ex-wrap"><button type="button" class="ex" data-action="pick" data-id="' + esc(x.id) + '" aria-pressed="' + (x.id === state.exerciseId) + '">' +
+          '<span class="ex-name">' + nameHtml(x.name) + "</span>" + (meta ? '<span class="ex-meta">' + meta + "</span>" : "") + "</button>" +
           '<button type="button" class="fav-btn" data-action="fav" data-id="' + esc(x.id) + '" aria-pressed="' + fav + '" aria-label="' +
             esc(x.name) + (fav ? " aus den Favoriten entfernen" : " als Favorit merken") + '">' + (fav ? IC.starOn : IC.star) + "</button></div>";
       }).join("");
@@ -3039,6 +3067,15 @@
     return Math.floor(min / 60) + " h " + pad(min % 60) + " min";
   }
   function fmtTime(ts) { return new Date(ts).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); }
+  // Kurzhanteln: eingetragen wird das Gewicht einer Hantel. Bewegt werden zwei (oder eine Hantel je Seite),
+  // nur bei Übungen mit einer Hantel in beiden Händen zählt es einfach.
+  var KH_SINGLE = { goblet: 1, overhead: 1, "pullover-kh": 1 };
+  function loadFactor(exr) { return exr && exr.eq === "Kurzhantel" && !KH_SINGLE[exr.id] ? 2 : 1; }
+  function loadHint(exr) {
+    if (!exr || exr.eq !== "Kurzhantel" || (exr.kind !== "w" && exr.kind !== "wt")) return "";
+    if (KH_SINGLE[exr.id]) return "Gewicht der Hantel";
+    return /einarmig|einbeinig|konzentration|kickback|seitbeugen|farmer/i.test(exr.id + " " + exr.name) ? "Gewicht je Hantel, Sätze pro Seite" : "Gewicht je Hantel";
+  }
   function sessionStats(list) {
     var sets = 0, vol = 0, cardio = 0;
     list.forEach(function (w) {
@@ -3049,7 +3086,8 @@
       }
       var ws = work(w.sets);
       sets += ws.length;
-      ws.forEach(function (s) { if ((!exr || exr.kind === "w") && s.w && s.r) vol += s.w * s.r; });
+      var fac = loadFactor(exr);
+      ws.forEach(function (s) { if ((!exr || exr.kind === "w") && s.w && s.r) vol += s.w * s.r * fac; });
     });
     return { exercises: list.length, sets: sets, volume: Math.round(vol), cardio: Math.round(cardio) };
   }
@@ -3845,6 +3883,70 @@
       return '<button type="button" class="chip sm" data-action="rir" data-index="' + i + '" data-id="' + n + '" aria-pressed="' + (s.rir === n) + '">' + (n === 4 ? "4+" : n) + "</button>";
     }).join("") + '</div><button type="button" class="btn-link" data-action="rir-skip">Überspringen</button></div>';
   }
+  // Supersatz aus dem Plan oder spontan im Logger verbunden
+  function ssGroup(exId) {
+    var c = ssChain(exId);
+    if (c) return c;
+    var p = state.ssPair;
+    return p && p.indexOf(exId) !== -1 && p.every(function (id) { return !!findEx(id); }) ? p : null;
+  }
+  function partnerDrafts(pid, n) {
+    var arr = state.drafts[pid];
+    if (!arr || !arr.length) arr = state.drafts[pid] = initialSets(pid);
+    while (arr.length < n && arr.length < 12) arr.push(blankSet());
+    return arr;
+  }
+  function partnerHtml(pid, k, n) {
+    var px = findEx(pid);
+    if (!px) return "";
+    var arr = partnerDrafts(pid, n), prev = prevFor(pid), f = kindFields(px.kind);
+    var cls = f.length === 1 ? "set-grid one" : "set-grid";
+    var head = '<span>Satz</span><span>Vorher</span>' + f.map(function (x) { return "<span>" + x[1] + "</span>"; }).join("") + '<span class="sr-only">Erledigt</span><span></span>';
+    var nW = 0;
+    var rows = arr.map(function (st, i) {
+      var ps = prev && prev.sets[i] ? prev.sets[i] : null;
+      var pv = ps ? (ps.type && TYPE_SHORT[ps.type] ? TYPE_SHORT[ps.type] + " " : "") + fmtSet(px, ps, true) : "–";
+      var lbl = st.type ? TYPE_SHORT[st.type] : String(++nW);
+      return '<div class="' + cls + (st.done ? " done" : "") + '"><span class="set-no' + (st.type ? " t-" + st.type : "") + '">' + esc(lbl) + "</span>" +
+        '<span class="prev-val">' + esc(pv) + "</span>" +
+        f.map(function (x) {
+          var ph = ps && ps[x[0]] != null ? (x[2] === "decimal" ? fmtNum(ps[x[0]]) : String(ps[x[0]])) : x[4];
+          return '<input class="num" type="text" inputmode="' + x[2] + '" autocomplete="off" enterkeyhint="next" data-pex="' + esc(pid) + '" data-pset="' + i + '" data-field="' + x[0] +
+            '" value="' + esc(st[x[0]] == null ? "" : st[x[0]]) + '" placeholder="' + esc(ph) + '" aria-label="' + esc(px.name + ", Satz " + (i + 1) + " " + x[5]) + '">';
+        }).join("") +
+        '<button type="button" class="icon-btn check-btn" data-action="p-set-done" data-id="' + esc(pid) + '" data-index="' + i + '" aria-pressed="' + (st.done ? "true" : "false") +
+          '" aria-label="' + esc(px.name + ", Satz " + (i + 1)) + ' als erledigt markieren">' + IC.check + "</button>" +
+        '<button type="button" class="icon-btn" data-action="p-set-remove" data-id="' + esc(pid) + '" data-index="' + i + '" aria-label="' + esc(px.name + ", Satz " + (i + 1)) + ' entfernen">' + IC.x + "</button></div>";
+    }).join("");
+    var cur = currentWorkout(pid), curN = cur ? work(cur.sets).length : 0;
+    return '<div class="ss-part"><div class="ss-label"><span class="ss-letter">' + String.fromCharCode(65 + k) + "</span>" +
+      '<span class="ss-name"><strong>' + esc(px.name) + '</strong><span class="meta">' + esc(px.eq) + (loadHint(px) ? " · " + esc(loadHint(px)) : "") +
+      (curN ? " · " + curN + (curN === 1 ? " Satz" : " Sätze") + " schon gespeichert" : "") + "</span></span>" +
+      '<button type="button" class="btn-link" data-action="pick" data-id="' + esc(pid) + '">Öffnen</button></div>' +
+      '<div class="sets"><div class="' + cls + ' sets-head">' + head + "</div>" + rows + "</div></div>";
+  }
+  function ssPickHtml(exr) {
+    var seen = {}, opt = function (x) { return '<option value="' + esc(x.id) + '">' + esc(x.name) + (x.eq ? " · " + esc(x.eq) : "") + "</option>"; };
+    seen[exr.id] = 1;
+    var act = activeSession(), here = [], recent = [];
+    if (act) sessionWorkouts(act.id).forEach(function (w) { var x = findEx(w.exerciseId); if (x && !seen[x.id]) { seen[x.id] = 1; here.push(x); } });
+    if (act && act.plan) act.plan.forEach(function (p) { var x = findEx(p.exId); if (x && !seen[x.id]) { seen[x.id] = 1; here.push(x); } });
+    data.workouts.slice().sort(function (a, b) { return (b.created || 0) - (a.created || 0); }).forEach(function (w) {
+      var x = findEx(w.exerciseId);
+      if (x && !seen[x.id] && recent.length < 8 && x.kind !== "c") { seen[x.id] = 1; recent.push(x); }
+    });
+    var groups = GROUPS.filter(function (g) { return g.id !== "cardio"; }).map(function (g) {
+      var xs = allExercises().filter(function (x) { return x.group === g.id && !seen[x.id] && !isHidden(x); });
+      return xs.length ? '<optgroup label="' + esc(g.name) + '">' + xs.map(opt).join("") + "</optgroup>" : "";
+    }).join("");
+    return '<div class="ss-pick"><label class="field">Zweite Übung für den Supersatz<select id="ss-select">' +
+      '<option value="">Bitte wählen …</option>' +
+      (here.length ? '<optgroup label="In diesem Training">' + here.map(opt).join("") + "</optgroup>" : "") +
+      (recent.length ? '<optgroup label="Zuletzt gemacht">' + recent.map(opt).join("") + "</optgroup>" : "") + groups + "</select></label>" +
+      '<p class="meta" style="margin:0">Beide Übungen erscheinen dann hier untereinander. Du füllst sie Runde für Runde aus und speicherst beide mit einem Tipp.</p>' +
+      '<div class="tpl-actions"><button type="button" class="btn" data-action="ss-pair">Verbinden</button>' +
+      '<button type="button" class="btn-quiet" data-action="ss-open">Abbrechen</button></div></div>';
+  }
   function roundsFor(exId) {
     var cur = currentWorkout(exId);
     var saved = cur ? work(cur.sets).length : 0;
@@ -3863,6 +3965,7 @@
     var act = activeSession();
     var current = currentWorkout(exr.id);
     var saveLabel = !act ? "Training starten und speichern" : current ? "Weitere Sätze speichern" : "Zum Training hinzufügen";
+    if (ssGroup(exr.id)) saveLabel = !act ? "Training starten und Supersatz speichern" : "Supersatz speichern";
     var prev = prevFor(exr.id);
     var fields = kindFields(exr.kind);
     var cls = fields.length === 1 ? "set-grid one" : "set-grid";
@@ -3913,18 +4016,13 @@
       : '';
 
     // Supersatz: Hinweis und Sprung zur Partnerübung
-    var chain = ssChain(exr.id), ssHtml = "";
+    var chain = ssGroup(exr.id), ssHtml = "", planChain = !!ssChain(exr.id);
+    var partners = chain ? chain.filter(function (id) { return id !== exr.id; }) : [];
     if (chain) {
-      var names = chain.map(function (id, k) { var x = findEx(id); return String.fromCharCode(65 + k) + " " + (x ? x.name : "?"); });
-      var nextId = chain[(chain.indexOf(exr.id) + 1) % chain.length];
-      var nx = findEx(nextId);
-      ssHtml = '<div class="ss-banner"><span><strong>Supersatz:</strong> ' + esc(names.join(" → ")) + "</span>" +
-        '<span class="meta">Mach je einen Satz pro Übung im Wechsel. Die Pause startet erst, wenn der Satz in allen Übungen des Supersatzes abgehakt ist.</span>' +
-        (nx ? (state.ssNext === nextId
-          ? '<button type="button" class="btn" data-action="pick" data-id="' + esc(nextId) + '">Weiter zu ' + esc(nx.name) + " →</button>"
-          : '<button type="button" class="btn-link" data-action="pick" data-id="' + esc(nextId) + '">Zu ' + esc(nx.name) + " wechseln →</button>") : "") +
-        "</div>";
-    }
+      ssHtml = '<div class="ss-banner"><span><strong>Supersatz</strong> mit ' + esc(partners.map(function (id) { var x = findEx(id); return x ? x.name : "?"; }).join(" und ")) + "</span>" +
+        '<span class="meta">Mach je einen Satz pro Übung im Wechsel und trag beide hier unten ein. Die Pause startet, wenn die Runde in allen Übungen abgehakt ist.</span>' +
+        (planChain ? "" : '<button type="button" class="btn-link" data-action="ss-unpair">Supersatz lösen</button>') + "</div>";
+    } else if (state.ssPickFor === exr.id) ssHtml = ssPickHtml(exr);
     var curWork = current ? work(current.sets).length : 0, curWarm = current ? current.sets.length - curWork : 0;
     var fav = isFav(exr.id);
 
@@ -3937,13 +4035,14 @@
       '<h2>Sätze eintragen</h2>' +
       '<div class="card logger">' +
         '<div class="logger-head"><div><div class="logger-name">' + esc(exr.name) + '</div>' +
-          '<div class="meta">' + esc(groupName(exr.group)) + ' · ' + esc(exr.eq) + '</div>' +
+          '<div class="meta">' + esc(groupName(exr.group)) + ' · ' + esc(exr.eq) + (loadHint(exr) ? ' · <strong class="load-hint">' + esc(loadHint(exr)) + "</strong>" : "") + '</div>' +
           (machineNos(exr.id).length ? '<div class="meta machine-no">' + esc((gym80Of(exr.id).length ? "gym80 " + gym80Of(exr.id).map(function (g) { return g.no + (g.series ? " " + g.series : ""); }).join(" · ") : "") + (ownNo(exr.id) ? (gym80Of(exr.id).length ? " · " : "") + "Mein Studio: " + ownNo(exr.id) : "")) + "</div>" : "") +
           '</div></div>' +
         '<div class="logger-tools">' +
-          '<button type="button" class="btn-link" data-action="alt-toggle" aria-expanded="' + (state.altFor === exr.id) + '">Gerät belegt? Alternativen</button>' +
-          '<button type="button" class="btn-link" data-action="fav" data-id="' + esc(exr.id) + '" aria-pressed="' + fav + '">' +
-          (fav ? "Favorit" : "Als Favorit merken") + "</button></div>" +
+          '<button type="button" class="chip sm" data-action="alt-toggle" aria-expanded="' + (state.altFor === exr.id) + '" aria-pressed="' + (state.altFor === exr.id) + '" title="Gerät belegt? Ähnliche Übungen">Alternativen</button>' +
+          (chain ? "" : '<button type="button" class="chip sm" data-action="ss-open" aria-expanded="' + (state.ssPickFor === exr.id) + '" aria-pressed="' + (state.ssPickFor === exr.id) + '">+ Supersatz</button>') +
+          '<button type="button" class="chip sm" data-action="fav" data-id="' + esc(exr.id) + '" aria-pressed="' + fav + '" aria-label="' + (fav ? "Favorit, tippen zum Entfernen" : "Als Favorit merken") + '">' +
+          '<span class="chip-ico">' + (fav ? IC.starSm : svgI(STAR_D, 15)) + "</span>" + (fav ? "Favorit" : "Merken") + "</button></div>" +
         (state.altFor === exr.id ? altHtml(exr) : "") +
         ssHtml +
         noteLine +
@@ -3960,10 +4059,12 @@
                   '<button type="button" data-action="cur-del-set" data-index="' + i + '" aria-label="Gespeicherten Satz ' + (i + 1) + ' löschen">' + IC.xs + '</button></span>';
               }).join("") + "</div></div>"
           : '') +
+        (partners.length ? '<div class="ss-label"><span class="ss-letter">A</span><span class="ss-name"><strong>' + esc(exr.name) + "</strong></span></div>" : "") +
         '<div class="sets"><div class="' + cls + ' sets-head">' + head + '</div>' + rows + '</div>' +
         '<div class="qbar" id="qbar">' + qbarInner(exr) + "</div>" +
         plateHtml +
-        '<div class="set-tools"><button type="button" class="btn-quiet" data-action="add-set">+ Satz hinzufügen</button>' + restChips + '</div>' +
+        partners.map(function (pid, k) { return partnerHtml(pid, k + 1, state.sets.length); }).join("") +
+        '<div class="set-tools"><button type="button" class="btn-quiet" data-action="add-set">' + (partners.length ? "+ Runde hinzufügen" : "+ Satz hinzufügen") + "</button>" + restChips + '</div>' +
         '<div class="logger-foot">' +
           '<button type="button" class="btn" data-action="save">' + saveLabel + '</button>' +
         '</div>' +
@@ -4314,7 +4415,7 @@
     var maxV = Math.max(12, vol[trained[0]] || 0);
     var listHtml = trained.map(function (id) {
       var v = vol[id];
-      return '<div class="vol-row"><span class="vol-name">' + esc(MUSCLE_NAMES[id]) + "</span>" +
+      return '<div class="vol-row"><span class="vol-name" title="' + esc(MUSCLE_NAMES[id]) + '">' + esc(shortMuscle(id)) + "</span>" +
         '<span class="vol-track"><span class="vol-bar hb' + heatClass(v).slice(1) + '" style="width:' + Math.max(4, Math.round(v / maxV * 100)) + '%"></span></span>' +
         '<span class="vol-val">' + esc(fmtNum(v)) + "</span></div>";
     }).join("");
@@ -4334,7 +4435,7 @@
         .sort(function (a, b) { return (vol[a] || 0) - (vol[b] || 0); });
       if (low.length) weak.push(low[0]);
     });
-    weak = weak.sort(function (a, b) { return (vol[a] || 0) - (vol[b] || 0); }).slice(0, 8);
+    weak = weak.sort(function (a, b) { return (vol[a] || 0) - (vol[b] || 0); }).slice(0, 6);
     var weakHtml = weak.length
       ? '<div class="week-weak"><span class="sub-h">Wenig trainiert · Übungen ansehen</span><div class="chips">' + weak.map(function (id) {
           return '<button type="button" class="chip sm" data-action="week-muscle" data-id="' + esc(id) + '" aria-pressed="' + (state.weekMuscle === id) + '">' +
@@ -4650,7 +4751,7 @@
         var keep = {}, act = activeSession();
         Object.keys(state.drafts).forEach(function (k) { if (draftHasValues(state.drafts[k])) keep[k] = state.drafts[k]; });
         if (!Object.keys(keep).length) localStorage.removeItem(DRAFT_KEY);
-        else localStorage.setItem(DRAFT_KEY, JSON.stringify({ sid: act ? act.id : null, ex: state.exerciseId, drafts: keep, t: Date.now() }));
+        else localStorage.setItem(DRAFT_KEY, JSON.stringify({ sid: act ? act.id : null, ex: state.exerciseId, drafts: keep, ss: state.ssPair, t: Date.now() }));
       } catch (e) {}
     }
     if (now) write(); else draftTimer = setTimeout(write, 200);
@@ -4663,6 +4764,7 @@
       Object.keys(d.drafts).forEach(function (k) {
         if (findEx(k) && Array.isArray(d.drafts[k]) && d.drafts[k].length) { state.drafts[k] = d.drafts[k]; n++; }
       });
+      if (Array.isArray(d.ss) && d.ss.every(function (id) { return !!findEx(id); })) state.ssPair = d.ss;
       if (d.ex && state.drafts[d.ex]) openExercise(d.ex);
       return n;
     } catch (e) { return 0; }
@@ -5395,7 +5497,7 @@
       best("e1rm", "Geschätztes 1RM", "kg");
       var vb = null;
       var byS = {};
-      list.forEach(function (w) { var k = trainingKey(w); (byS[k] = byS[k] || { date: w.date, v: 0 }).v += work(w.sets).reduce(function (a, s) { return a + (s.w || 0) * (s.r || 0); }, 0); });
+      list.forEach(function (w) { var k = trainingKey(w); (byS[k] = byS[k] || { date: w.date, v: 0 }).v += work(w.sets).reduce(function (a, s) { return a + (s.w || 0) * (s.r || 0); }, 0) * loadFactor(exr); });
       Object.keys(byS).forEach(function (k) { if (byS[k].v > 0 && (!vb || byS[k].v > vb.v)) vb = byS[k]; });
       if (vb) recs.push({ label: "Bestes Trainingsvolumen", text: Math.round(vb.v).toLocaleString("de-DE") + " kg", date: vb.date });
     } else if (exr.kind === "bw") {
@@ -5533,6 +5635,8 @@
   function renderCoach() {
     var box = document.getElementById("coach");
     if (!box) return;
+    var coachSec = box.closest("section");
+    if (coachSec) coachSec.hidden = coach.checked && !coach.sample;
     if (coach.checked && !coach.sample) {
       box.innerHTML = '<p class="meta" style="margin:0">Die Auswertung mit Claude ist in dieser Ansicht nicht verfügbar. Öffne die App direkt in Claude, angemeldet mit deinem Konto.</p>';
       return;
@@ -6197,10 +6301,20 @@
   function saveWorkout() {
     var exr = findEx(state.exerciseId);
     if (!exr) return;
-    var otherOn = !!state.otherFor[exr.id];
-    var parsed = parseSets(exr, state.sets, otherOn);
-    var sets = parsed.sets, problem = parsed.problem;
-    if (!problem && !sets.length) problem = "Trag mindestens einen Satz ein.";
+    // Alle Übungen mit Einträgen: die geöffnete und im Supersatz die Partner
+    var grp = ssGroup(exr.id) || [exr.id];
+    var jobs = [], problem = "";
+    grp.forEach(function (id, k) {
+      if (problem) return;
+      var x = findEx(id);
+      var drafts = id === exr.id ? state.sets : state.drafts[id];
+      if (!x || (id !== exr.id && !draftHasValues(drafts))) return;
+      var p = parseSets(x, drafts || [], !!state.otherFor[id]);
+      var pre = grp.length > 1 ? String.fromCharCode(65 + k) + " · " + x.name + ", " : "";
+      if (p.problem) problem = pre + p.problem;
+      else if (p.sets.length) jobs.push({ ex: x, sets: p.sets, other: !!state.otherFor[id] });
+    });
+    if (!problem && !jobs.length) problem = grp.length > 1 ? "Trag in mindestens einer Übung einen Satz ein." : "Trag mindestens einen Satz ein.";
     if (problem) { state.logError = problem; renderLogger(); return; }
 
     var storageError = "Speichern nicht möglich. Dieser Browser erlaubt gerade keine gespeicherten Daten.";
@@ -6212,20 +6326,38 @@
       started = true;
     }
 
-    var before = bestOf(exr);
-    // Gleiche Übung im selben Training: Sätze an den bestehenden Eintrag anhängen
-    var existing = sessionWorkouts(act.id).filter(function (w) { return w.exerciseId === exr.id; })[0];
-    var backup = existing ? existing.sets.slice() : null;
-    if (existing) { existing.sets = existing.sets.concat(sets); existing.u = Date.now(); if (otherOn) existing.other = true; }
-    else data.workouts.push({ id: uid(), date: act.date, exerciseId: exr.id, sets: sets, created: Date.now(), u: Date.now(), sessionId: act.id });
-    if (!existing && otherOn) data.workouts[data.workouts.length - 1].other = true;
+    var snapshot = JSON.stringify(data.workouts);
+    jobs.forEach(function (j) {
+      j.before = bestOf(j.ex);
+      // Gleiche Übung im selben Training: Sätze an den bestehenden Eintrag anhängen
+      var existing = sessionWorkouts(act.id).filter(function (w) { return w.exerciseId === j.ex.id; })[0];
+      if (existing) { existing.sets = existing.sets.concat(j.sets); existing.u = Date.now(); if (j.other) existing.other = true; }
+      else {
+        var nw = { id: uid(), date: act.date, exerciseId: j.ex.id, sets: j.sets, created: Date.now(), u: Date.now(), sessionId: act.id };
+        if (j.other) nw.other = true;
+        data.workouts.push(nw);
+      }
+    });
     if (!save(data)) {
-      if (existing) existing.sets = backup; else data.workouts.pop();
+      data.workouts = JSON.parse(snapshot);
       state.logError = storageError;
       renderLogger();
       return;
     }
-    var after = bestOf(exr);
+    var prs = [];
+    jobs.forEach(function (j) {
+      j.after = bestOf(j.ex);
+      var b0 = j.before, a0 = j.after;
+      j.first = !b0 || !a0;
+      j.improved = !j.first && (a0.top.main > b0.top.main || (a0.top.main === b0.top.main && a0.top.tie > b0.top.tie) ||
+        (j.ex.kind === "w" && a0.e1rm && b0.e1rm && a0.e1rm > b0.e1rm));
+      if (j.improved) {
+        prs.push(j);
+        if ((act.prs || []).indexOf(j.ex.name) === -1) { act.prs = (act.prs || []).concat([j.ex.name]); act.u = Date.now(); }
+      }
+      delete state.drafts[j.ex.id];
+    });
+    if (prs.length) save(data);
 
     state.logError = "";
     delete state.drafts[exr.id];
@@ -6240,18 +6372,17 @@
     var prefix = started ? "Training gestartet · " : "";
     var nextIt = nextOpenPlanItem(exr.id);
     var nextX = nextIt ? findEx(nextIt.exId) : null;
-    if (!before || !after) {
-      toast(prefix + "Erster Eintrag für " + exr.name + " gespeichert." + (nextX ? " Als Nächstes: " + nextX.name + "." : ""));
+    if (prs.length) {
+      haptic("success");
+      toast(prefix + "Neuer Bestwert bei " + prs.map(function (j) { return j.ex.name + ": " + fmtSet(j.ex, j.after.top.set, false); }).join(" · "), true);
+    } else if (jobs.length > 1) {
+      toast(prefix + "Supersatz gespeichert: " + jobs.map(function (j) { return j.ex.name + " " + j.sets.length + (j.sets.length === 1 ? " Satz" : " Sätze"); }).join(", ") + "." +
+        (nextX ? " Als Nächstes: " + nextX.name + "." : ""));
+    } else if (jobs[0].first) {
+      toast(prefix + "Erster Eintrag für " + jobs[0].ex.name + " gespeichert." + (nextX ? " Als Nächstes: " + nextX.name + "." : ""));
     } else {
-      var improved = after.top.main > before.top.main ||
-        (after.top.main === before.top.main && after.top.tie > before.top.tie) ||
-        (exr.kind === "w" && after.e1rm && before.e1rm && after.e1rm > before.e1rm);
-      if (improved) {
-        if ((act.prs || []).indexOf(exr.name) === -1) { act.prs = (act.prs || []).concat([exr.name]); act.u = Date.now(); save(data); }
-        haptic("success");
-        toast(prefix + "Neuer Bestwert bei " + exr.name + ": " + fmtSet(exr, after.top.set, false), true);
-      }
-      else toast(prefix + sets.length + (sets.length === 1 ? " Satz" : " Sätze") + " gespeichert." + (nextX ? " Als Nächstes: " + nextX.name + "." : ""));
+      var n0 = jobs[0].sets.length;
+      toast(prefix + n0 + (n0 === 1 ? " Satz" : " Sätze") + " gespeichert." + (nextX ? " Als Nächstes: " + nextX.name + "." : ""));
     }
   }
 
@@ -6280,6 +6411,7 @@
     state.exerciseId = null;
     state.drafts = {};
     state.otherFor = {};
+    state.ssPair = null;
     persistDrafts(true);
     state.sets = [blankSet()];
     state.rirFor = null;
@@ -6454,6 +6586,59 @@
         var copy = last ? setToDraft(last) : blankSet();
         if (copy.type === "f") copy.type = "";
         state.sets.push(copy);
+        (ssGroup(state.exerciseId) || []).forEach(function (pid) {
+          if (pid === state.exerciseId) return;
+          var pa = partnerDrafts(pid, 0), pl = pa[pa.length - 1], pc = pl ? setToDraft(pl) : blankSet();
+          if (pc.type === "f") pc.type = "";
+          if (pa.length < state.sets.length) pa.push(pc);
+        });
+        persistDrafts();
+        renderLogger();
+        break;
+      case "ss-open":
+        state.ssPickFor = state.ssPickFor === state.exerciseId ? null : state.exerciseId;
+        renderLogger();
+        if (state.ssPickFor) { var sss = document.getElementById("ss-select"); if (sss) sss.focus(); }
+        break;
+      case "ss-pair":
+        var ssv = (document.getElementById("ss-select") || {}).value;
+        if (!ssv || !findEx(ssv)) { toast("Bitte zuerst die zweite Übung wählen."); break; }
+        state.ssPair = [state.exerciseId, ssv];
+        state.ssPickFor = null;
+        partnerDrafts(ssv, state.sets.length);
+        persistDrafts();
+        renderLogger();
+        toast("Supersatz mit " + findEx(ssv).name + " verbunden.");
+        break;
+      case "ss-unpair":
+        state.ssPair = null;
+        persistDrafts();
+        renderLogger();
+        break;
+      case "p-set-done":
+        var pArr = state.drafts[id], pIdx = int(el.getAttribute("data-index")), pRow = pArr && pArr[pIdx], pEx = findEx(id);
+        if (pRow && pEx) {
+          if (!pRow.done && !draftHasValues([pRow])) {
+            var pPrev = prevFor(id), pSrc = pPrev && pPrev.sets[pIdx] ? setToDraft(pPrev.sets[pIdx]) : null;
+            if (!pSrc && pIdx > 0 && draftHasValues([pArr[pIdx - 1]])) pSrc = pArr[pIdx - 1];
+            if (pSrc) kindFields(pEx.kind).forEach(function (f) { pRow[f[0]] = pSrc[f[0]]; });
+          }
+          pRow.done = !pRow.done;
+          if (pRow.done) {
+            haptic("tick");
+            unlockAudio();
+            if (pIdx === pArr.length - 1 && pRow.type !== "w" && pArr.length < 12 && !planItemFor(id)) pArr.push(blankSet());
+            var pGrp = ssGroup(state.exerciseId) || [], pR = roundsFor(id);
+            if (pRow.type !== "w" && pGrp.every(function (x) { return roundsFor(x) >= pR; })) startRest();
+          }
+          persistDrafts();
+          renderLogger();
+        }
+        break;
+      case "p-set-remove":
+        var prArr = state.drafts[id], prIdx = int(el.getAttribute("data-index"));
+        if (prArr) { if (prArr.length > 1) prArr.splice(prIdx, 1); else prArr[0] = blankSet(); }
+        persistDrafts();
         renderLogger();
         break;
       case "set-type":
@@ -6874,7 +7059,7 @@
             haptic("tick");
             unlockAudio();
             state.rirFor = dRow.type !== "w" && dEx && hasReps(dEx.kind) ? di : null;
-            var chainD = dRow.type === "w" ? null : ssChain(state.exerciseId);
+            var chainD = dRow.type === "w" ? null : ssGroup(state.exerciseId);
             var waitFor = null;
             if (chainD) {
               var myR = roundsFor(state.exerciseId), me = chainD.indexOf(state.exerciseId);
@@ -6888,9 +7073,17 @@
               var wx = findEx(waitFor);
               toast("Supersatz: jetzt ohne Pause " + (wx ? wx.name : "die nächste Übung") + ".");
               renderSession();
+              state.focusPartner = waitFor;
             } else startRest();
           } else if (state.rirFor === di) state.rirFor = null;
           renderLogger();
+          if (state.focusPartner) {
+            var fpArr = state.drafts[state.focusPartner] || [], fpI = 0;
+            while (fpI < fpArr.length - 1 && fpArr[fpI].done) fpI++;
+            var fpIn = document.querySelector('#logger input[data-pex="' + state.focusPartner + '"][data-pset="' + fpI + '"]');
+            state.focusPartner = null;
+            if (fpIn) { fpIn.focus({ preventScroll: true }); if (fpIn.scrollIntoView) fpIn.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" }); }
+          }
         }
         break;
       case "rest-len":
@@ -7159,6 +7352,13 @@
         else if (data.notes[nk]) data.notes[nk] = { text: "", u: Date.now() };
         save(data);
       }, 600);
+      return;
+    }
+    var pex = t.getAttribute && t.getAttribute("data-pex");
+    if (pex) {
+      var parr = state.drafts[pex], pset = int(t.getAttribute("data-pset"));
+      if (parr && parr[pset]) parr[pset][t.getAttribute("data-field")] = t.value;
+      persistDrafts();
       return;
     }
     var i = t.getAttribute && t.getAttribute("data-set");
